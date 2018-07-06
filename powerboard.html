@@ -7,14 +7,15 @@
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.0/umd/popper.min.js" integrity="sha384-cs/chFZiN24E4KMATLdqdvsezGxaGsi4hLGOzlXwp5UZB1LY//20VyM2taTB4QvJ" crossorigin="anonymous"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/js/bootstrap.min.js" integrity="sha384-uefMccjFJAIv6A+rW+L4AHf99KvxDjWSu1z9VI8SKNVmz4sk7buKt/6v9KI65qnm" crossorigin="anonymous"></script>
+    <script src="https://cdn.rawgit.com/google/code-prettify/master/loader/run_prettify.js"></script>
 </head>
 <body>
     <div class="container">
         <div class="row">
             <div class="col-sm text-right" style="padding: 15px">
-                <span>(0) items to update</span>
-                <a href="#" class="btn btn-light" style="margin: 5px 10px">Cancel</a>
-                <a href="#" class="btn btn-success" style="margin: 5px">Update</a>
+                <span>(<span id="select-count">0</span>) items to update</span>
+                <a href="#" id="button-cancel" class="btn btn-light" style="margin: 5px 10px">Cancel</a>
+                <a href="#" id="button-update" class="btn btn-success" style="margin: 5px">Update</a>
             </div>
             <!-- <span class="pull-right">Hello</span> -->
         </div>
@@ -33,7 +34,83 @@
             </tbody>
         </table>
     </div>
+    <div class="modal fade" id="promptModal" tabindex="-1" role="dialog" aria-labelledby="promptModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Send the following?</h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <pre class="prettyprint" id="json-text">
+                    </pre>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
   <script>
+
+        // GLOBAL VARIABLE
+
+        let selectcount = 0
+
+        // END GLOBAL VARIABLE
+
+        // SYNCHRONOUS TASKS
+        const buttoncancel = document.querySelector('a#button-cancel')
+        const buttonupdate = document.querySelector('a#button-update')
+
+        buttoncancel.addEventListener('click', e => {
+            e.preventDefault()
+            console.log('Cancel Button')
+
+            const allselect = document.querySelectorAll('select.select-expected-output')
+            if (allselect.length > 0) {
+                allselect.forEach(item => {
+                    if (item.options[item.selectedIndex].value !== '--Choose--') {
+                        item.value = '--Choose--'
+                        selectcount -= 1
+                    }
+                })
+                const spanselect = document.querySelector('span#select-count')
+                spanselect.innerHTML = selectcount
+            }
+        })
+        
+        buttonupdate.addEventListener('click', e => {
+            e.preventDefault()
+            
+            if (selectcount > 0) {
+                const allselect = document.querySelectorAll('select.select-expected-output')
+                if (allselect.length > 0) {
+                    let items = []
+                    allselect.forEach(item => {
+                        if (item.options[item.selectedIndex].value !== '--Choose--') {
+                            const expectedvalue = item.value
+                            const tr = item.closest('tr')
+                            const datetime = tr.querySelector('td.date-time').innerHTML
+                            items.push({ID: tr.id, Key: datetime, ExpectedOutput: expectedvalue})                  
+                        }
+                    })
+                    if (items.length > 0) {
+                        const updateobject = {
+                            Items : items
+                        }
+                        const prettycode = document.querySelector('pre#json-text')
+                        prettycode.innerHTML = JSON.stringify(updateobject, null, 4)
+                        $('#promptModal').modal('show');
+                    }
+                }
+            }
+        })
+
+        // ASYNCHRONOUS TASKS
         const httpGetAsync = (url, callback) => {
             const xmlHttp = new XMLHttpRequest();
             xmlHttp.onreadystatechange = () => {
@@ -57,11 +134,10 @@
                 items.forEach((item) => {
                     if (l.indexOf(item.PredictedOutput) == -1){
                         l.push(item.PredictedOutput)
-                    } 
+                    }
                 })
                 return l
             }
-            console.log(appList(items))
 
             let counter = 1
             items.forEach((item) => {
@@ -100,9 +176,10 @@
                     div.className = 'form-group'
 
                     const select = document.createElement('select')
-                    select.className = 'form-control'
+                    select.className = 'form-control select-expected-output'
                     appList(items).forEach(items => {
                         const option = document.createElement('option')
+                        option.value = items
                         option.innerHTML = items
                         select.appendChild(option)
                     })
@@ -116,6 +193,17 @@
 
                 counter += 1
             })
+            const selectlist = document.querySelectorAll('select.select-expected-output')
+            selectlist.forEach( item => item.addEventListener('change', e => {
+                const val = e.target.value
+                if (val !== '--Choose--'){
+                    selectcount += 1
+                } else {
+                    selectcount -= 1
+                }
+                const spanselect = document.querySelector('span#select-count')
+                spanselect.innerHTML = selectcount
+            }))
         })
     </script>
 </body>
