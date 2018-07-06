@@ -14,7 +14,7 @@
         <div class="row">
             <div class="col-sm text-right" style="padding: 15px">
                 <span>(<span id="select-count">0</span>) items to update</span>
-                <a href="#" id="button-cancel" class="btn btn-light" style="margin: 5px 10px">Cancel</a>
+                <a href="#" id="button-cancel" class="btn btn-light" style="margin: 5px 10px">Clear</a>
                 <a href="#" id="button-update" class="btn btn-success" style="margin: 5px">Update</a>
             </div>
             <!-- <span class="pull-right">Hello</span> -->
@@ -48,23 +48,27 @@
                     </pre>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary">Save Changes</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <a href="#" class="btn btn-primary" id="post-update">Send</a>
                 </div>
             </div>
         </div>
     </div>
   <script>
+        
+
 
         // GLOBAL VARIABLE
 
         let selectcount = 0
+        let updateobject
 
         // END GLOBAL VARIABLE
 
         // SYNCHRONOUS TASKS
         const buttoncancel = document.querySelector('a#button-cancel')
         const buttonupdate = document.querySelector('a#button-update')
+        const sendupdate = document.querySelector('a#post-update')
 
         buttoncancel.addEventListener('click', e => {
             e.preventDefault()
@@ -95,30 +99,76 @@
                             const expectedvalue = item.value
                             const tr = item.closest('tr')
                             const datetime = tr.querySelector('td.date-time').innerHTML
-                            items.push({ID: tr.id, Key: datetime, ExpectedOutput: expectedvalue})                  
+                            const predictedoutput = tr.querySelector('td.predicted-output').innerHTML
+                            const match = predictedoutput === expectedvalue ? true : false
+                            items.push({
+                                ID: tr.id.replace('tr-', ''),
+                                Key: datetime,
+                                ExpectedOutput: expectedvalue,
+                                PredictedOutput: predictedoutput,
+                                match: match
+                            })                  
                         }
                     })
                     if (items.length > 0) {
-                        const updateobject = {
+                        updateobject = {
                             Items : items
                         }
                         const prettycode = document.querySelector('pre#json-text')
                         prettycode.innerHTML = JSON.stringify(updateobject, null, 4)
-                        $('#promptModal').modal('show');
+                        $('#promptModal').modal('show')
                     }
                 }
             }
         })
+        
+        sendupdate.addEventListener('click', e => {
+            e.preventDefault()
+            $('#promptModal').modal('hide')
+            httpPostAsync('https://twvi58of5b.execute-api.ap-southeast-1.amazonaws.com/prod', updateobject, response => {
+                const r = JSON.parse(response)
+                selectcount = 0
+                const spanselect = document.querySelector('span#select-count')
+                spanselect.innerHTML = selectcount
+                r.forEach(item => {
+                    console.log(item)
+                    const trid = 'tr#tr-' + item.ID
+                    const tr = document.querySelector(trid)
+                    const td = tr.querySelector('td.expected-output')
+                    td.innerHTML = ''
+                    text = document.createTextNode(item.ExpectedOutput.toString())
+                    td.appendChild(text)
+                    tr.setAttribute('matched-output', item.match)
+                    if (item.match) {
+                        tr.className = 'table-success'
+                    } else {
+                        tr.className = 'table-danger'
+                    }
+                })
+            })
+        })
 
         // ASYNCHRONOUS TASKS
         const httpGetAsync = (url, callback) => {
-            const xmlHttp = new XMLHttpRequest();
+            const xmlHttp = new XMLHttpRequest()
             xmlHttp.onreadystatechange = () => {
                 if (xmlHttp.readyState == 4 && xmlHttp.status == 200) callback(xmlHttp.responseText)
             }
             xmlHttp.open('GET', url, true)
             xmlHttp.send(null)
         }
+        
+        const httpPostAsync = (url, payload, callback) => {
+            const xmlHttp = new XMLHttpRequest()
+            xmlHttp.onreadystatechange = () => {
+                if (xmlHttp.readyState == 4 && xmlHttp.status == 200) callback(xmlHttp.responseText)
+            }
+            xmlHttp.open('POST', url, true)
+            // xmlHttp.setRequestHeader('Access-Control-Allow-Origin', '*')
+            xmlHttp.setRequestHeader('Content-Type', 'application/json')
+            xmlHttp.send(JSON.stringify(payload))
+        }
+
         httpGetAsync('https://cors.io/?https://nx5jg0ntc8.execute-api.ap-southeast-1.amazonaws.com/prod/getPowerboardML', (response) => {
             const data = JSON.parse(response)
             const tbody = document.querySelector('tbody#list')
@@ -142,7 +192,7 @@
             let counter = 1
             items.forEach((item) => {
                 const tr = document.createElement('tr')
-                tr.id = counter
+                tr.id = 'tr-' + counter
 
                 let td = document.createElement('td')
                 let text = document.createTextNode(item.DateTime)
@@ -186,7 +236,17 @@
                     div.appendChild(select)
                     td.appendChild(div)
                 } else {
-                    console.log('Exists')
+                    // console.log('Exists')
+                    text = document.createTextNode(item.ExpectedOutput)
+                    td.appendChild(text)
+                    
+                    if (item.MatchedOutput) {
+                        tr.className += 'table-success'
+                    } else {
+                        tr.className += 'table-danger'
+                    }
+                    tr.setAttribute('matched-output', item.MatchedOutput)
+                    // console.log(item.MatchedOutput)
                 }
                 tr.appendChild(td)
                 tbody.appendChild(tr)
