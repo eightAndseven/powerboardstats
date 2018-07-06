@@ -10,6 +10,14 @@
 </head>
 <body>
     <div class="container">
+        <div class="row">
+            <div class="col-sm text-right" style="padding: 15px">
+                <span>(0) items to update</span>
+                <a href="#" class="btn btn-light" style="margin: 5px 10px">Cancel</a>
+                <a href="#" class="btn btn-success" style="margin: 5px">Update</a>
+            </div>
+            <!-- <span class="pull-right">Hello</span> -->
+        </div>
         <table class="table">
             <thead>
                 <tr>
@@ -45,7 +53,7 @@
                 return c - d
             }).reverse()
             
-            const appList = (items, l=[]) => {
+            const appList = (items, l=['--Choose--']) => {
                 items.forEach((item) => {
                     if (l.indexOf(item.PredictedOutput) == -1){
                         l.push(item.PredictedOutput)
@@ -53,26 +61,56 @@
                 })
                 return l
             }
+            console.log(appList(items))
 
             let counter = 1
             items.forEach((item) => {
                 const tr = document.createElement('tr')
                 tr.id = counter
+
                 let td = document.createElement('td')
                 let text = document.createTextNode(item.DateTime)
+                td.className = 'date-time'
                 td.appendChild(text)
                 tr.appendChild(td)
+
                 td = document.createElement('td')
                 text = document.createTextNode(item.values.first_ave)
+                td.className = 'first-ave'
                 td.appendChild(text)
                 tr.appendChild(td)
+
                 td = document.createElement('td')
                 text = document.createTextNode(item.values.second_ave)
+                td.className = 'second-ave'
                 td.appendChild(text)
                 tr.appendChild(td)
+
                 td = document.createElement('td')
                 text = document.createTextNode(item.PredictedOutput)
+                td.className = 'predicted-output'
                 td.appendChild(text)
+                tr.appendChild(td)
+
+                td = document.createElement('td')
+                td.className = 'expected-output'
+                if (typeof item.ExpectedOutput === 'undefined') {
+
+                    const div = document.createElement('div')
+                    div.className = 'form-group'
+
+                    const select = document.createElement('select')
+                    select.className = 'form-control'
+                    appList(items).forEach(items => {
+                        const option = document.createElement('option')
+                        option.innerHTML = items
+                        select.appendChild(option)
+                    })
+                    div.appendChild(select)
+                    td.appendChild(div)
+                } else {
+                    console.log('Exists')
+                }
                 tr.appendChild(td)
                 tbody.appendChild(tr)
 
