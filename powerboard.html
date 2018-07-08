@@ -22,6 +22,7 @@
         <table class="table">
             <thead>
                 <tr>
+                    <th class="scope">Socket</th>
                     <th class="scope">Date and Time</th>
                     <th class="scope">First Average</th>
                     <th class="scope">Second Average</th>
@@ -55,14 +56,21 @@
         </div>
     </div>
   <script>
-        
-
 
         // GLOBAL VARIABLE
 
         let selectcount = 0
         let updateobject
-
+        const appList = [
+            '--Choose--', 
+            'Desk Lamp', 
+            'Monitor', 
+            'Electric Fan', 
+            'Phone Charger', 
+            'Laptop charger', 
+            'Toaster'
+        ]
+        
         // END GLOBAL VARIABLE
 
         // SYNCHRONOUS TASKS
@@ -180,22 +188,21 @@
                 return c - d
             }).reverse()
             
-            const appList = (items, l=['--Choose--']) => {
-                items.forEach((item) => {
-                    if (l.indexOf(item.PredictedOutput) == -1){
-                        l.push(item.PredictedOutput)
-                    }
-                })
-                return l
-            }
-
             let counter = 1
             items.forEach((item) => {
                 const tr = document.createElement('tr')
                 tr.id = 'tr-' + counter
-
+                
                 let td = document.createElement('td')
-                let text = document.createTextNode(item.DateTime)
+                let text = typeof item.Socket === 'undefined' 
+                    ? document.createTextNode('None')
+                    : document.createTextNode(item.Socket) 
+                td.className = 'socket text-center'
+                td.appendChild(text)
+                tr.appendChild(td)
+
+                td = document.createElement('td')
+                text = document.createTextNode(item.DateTime)
                 td.className = 'date-time'
                 td.appendChild(text)
                 tr.appendChild(td)
@@ -227,7 +234,7 @@
 
                     const select = document.createElement('select')
                     select.className = 'form-control select-expected-output'
-                    appList(items).forEach(items => {
+                    appList.forEach(items => {
                         const option = document.createElement('option')
                         option.value = items
                         option.innerHTML = items
