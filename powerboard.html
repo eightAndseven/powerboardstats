@@ -12,12 +12,14 @@
 <body>
     <div class="container">
         <div class="row">
-            <div class="col-sm text-right" style="padding: 15px">
+            <div class="col-sm-6 text-left" style="padding: 15px">
+                <a href="#" id="button-details" class="btn btn-light" style="margin: 5px">Details</a>
+            </div>
+            <div class="col-sm-6 text-right" style="padding: 15px">
                 <span>(<span id="select-count">0</span>) items to update</span>
                 <a href="#" id="button-cancel" class="btn btn-light" style="margin: 5px 10px">Clear</a>
                 <a href="#" id="button-update" class="btn btn-success" style="margin: 5px">Update</a>
             </div>
-            <!-- <span class="pull-right">Hello</span> -->
         </div>
         <table class="table">
             <thead>
@@ -30,10 +32,26 @@
                     <th class="scope">Expected Result</th>
                 </tr>
             </thead>
-            <tbody id="list">
-
-            </tbody>
+            <tbody id="list"></tbody>
         </table>
+    </div>
+    <div class="modal fade" id="detailsModal" tabindex="-1" role="dialog" aria-labelledby="detailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Details</h5>
+                    <button type="modal" class="close" data-dismiss="modal">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div id="details-body" class="modal-body">
+                    
+                </div>
+                <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
     </div>
     <div class="modal fade" id="promptModal" tabindex="-1" role="dialog" aria-labelledby="promptModalLabel" aria-hidden="true">
         <div class="modal-dialog" role="document">
@@ -77,6 +95,7 @@
         const buttoncancel = document.querySelector('a#button-cancel')
         const buttonupdate = document.querySelector('a#button-update')
         const sendupdate = document.querySelector('a#post-update')
+        const details = document.querySelector('a#button-details')
 
         buttoncancel.addEventListener('click', e => {
             e.preventDefault()
@@ -155,6 +174,64 @@
                 })
             })
         })
+        
+        details.addEventListener('click', e => {
+            e.preventDefault()
+            const tbody = document.querySelector('tbody#list')
+            if (tbody.hasChildNodes()) {
+                // has child nodes
+                const tr = tbody.querySelectorAll('tr')
+                let precisioncount = []
+                tr.forEach(item => {
+                    let output = item.getAttribute('matched-output')
+                    if (output !== null) {
+                        output = (output === 'true')
+                        const expectedoutput = item.querySelector('td.expected-output').innerHTML
+                        const predictedoutput = item.querySelector('td.predicted-output').innerHTML
+                        let checker = true
+                        precisioncount.forEach(count => {
+                            if (count.name === expectedoutput) {
+                                // contains
+                                count.count += 1
+                                count.rawboolean.push(output)
+                                count.rawvalue.push(predictedoutput)
+                                checker = false
+                            }
+                        })
+                        if (checker) {
+                            precisioncount.push({
+                                name : expectedoutput,
+                                count : 1,
+                                rawboolean : [output],
+                                rawvalue : [predictedoutput]
+                            })
+                        }
+                    }
+                })
+                if (precisioncount.length > 0) {
+                    const div = document.querySelector('div#details-body')
+                    div.innerHTML = '<h5>Precision<h5>'
+                    precisioncount.forEach(item => {
+                        const count = item.count
+                        let truecount = 0
+                        for (var i = 0; i < item.rawboolean.length; i++) {
+                            if (item.rawboolean[i]) {
+                                truecount += 1
+                            }
+                        }
+                        const percent = ( truecount / count ) * 100
+                        const p = document.createElement('p')
+                        p.innerHTML = item.name + ': <strong>' + percent +'%' + '</strong><br>' +
+                            '&nbsp;&nbsp;&nbsp;&nbsp;Number of tests: <strong>' + count + '</strong><br>' +
+                            '&nbsp;&nbsp;&nbsp;&nbsp;Number of passed: <strong>' + truecount + '</strong>'
+                        div.appendChild(p)
+                    })
+                    $('#detailsModal').modal('show');
+                }
+            }
+        })
+
+
 
         // ASYNCHRONOUS TASKS
         const httpGetAsync = (url, callback) => {
